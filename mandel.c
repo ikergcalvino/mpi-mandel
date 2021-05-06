@@ -7,6 +7,7 @@ with z_0 = 0 does not tend to infinity.*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <mpi.h>
 
 #define DEBUG 1
 
@@ -33,7 +34,7 @@ static inline double get_seconds(struct timeval t_ini, struct timeval t_end)
          (t_end.tv_sec - t_ini.tv_sec);
 }
 
-int main ( )
+int main (int argc, char *argv[])
 {
 
   /* Mandelbrot variables */
@@ -44,6 +45,13 @@ int main ( )
 
   /* Timestamp variables */
   struct timeval  ti, tf;
+
+  /* MPI variables */
+  int numprocs, rank;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   /* Allocate result matrix of Y_RESN x X_RESN */
   vres = (int *) malloc(Y_RESN * X_RESN * sizeof(int));
@@ -87,7 +95,7 @@ int main ( )
   fprintf (stderr, "(PERF) Time (seconds) = %lf\n", get_seconds(ti,tf));
 
   /* Print result out */
-  if( DEBUG ) {
+  if( DEBUG && rank == 0 ) {
     for(i=0;i<Y_RESN;i++) {
       for(j=0;j<X_RESN;j++)
               printf("%3d ", res[i][j]);
@@ -96,6 +104,8 @@ int main ( )
   }
 
   free(vres);
+
+  MPI_Finalize();
 
   return 0;
 }
