@@ -10,6 +10,7 @@ with z_0 = 0 does not tend to infinity.*/
 #include <mpi.h>
 
 #define DEBUG 1
+#define STATS 1
 
 #define          X_RESN  1024  /* x resolution */
 #define          Y_RESN  1024  /* y resolution */
@@ -19,6 +20,10 @@ with z_0 = 0 does not tend to infinity.*/
 #define           X_MAX   2.0
 #define           Y_MIN  -2.0
 #define           Y_MAX   2.0
+
+/* Incrementos de X e Y */
+#define PASO_X ((X_MAX - X_MIN)/X_RESN)
+#define PASO_Y ((Y_MAX - Y_MIN)/Y_RESN)
 
 /* More iterations -> more detailed image & higher computational cost */
 #define   maxIterations  1000
@@ -34,13 +39,36 @@ static inline double get_seconds(struct timeval t_ini, struct timeval t_end)
          (t_end.tv_sec - t_ini.tv_sec);
 }
 
+int mandelbrot(int i, int j, int *flops)
+{
+  int     k;
+  Compl   z, c;
+  float   lengthsq, temp;
+
+  z.real = z.imag = 0.0;
+  c.real = X_MIN + j * PASO_X;
+  c.imag = Y_MAX - i * PASO_Y;
+	*flops += 4;
+  k = 0;
+
+  do
+  {    /* iterate for pixel color */
+    temp = z.real*z.real - z.imag*z.imag + c.real;
+    z.imag = 2.0*z.real*z.imag + c.imag;
+    z.real = temp;
+    lengthsq = z.real*z.real+z.imag*z.imag;
+    k++;
+    *flops += 10;
+  } while (lengthsq < 4.0 && k < maxIterations);
+
+  return k;
+}
+
 int main (int argc, char *argv[])
 {
 
   /* Mandelbrot variables */
   int i, j, k;
-  Compl   z, c;
-  float   lengthsq, temp;
   int *vres, *res[Y_RESN];
 
   /* Timestamp variables */
@@ -71,19 +99,7 @@ int main (int argc, char *argv[])
   {
     for(j=0; j < X_RESN; j++)
     {
-      z.real = z.imag = 0.0;
-      c.real = X_MIN + j * (X_MAX - X_MIN)/X_RESN;
-      c.imag = Y_MAX - i * (Y_MAX - Y_MIN)/Y_RESN;
-      k = 0;
-
-      do
-      {    /* iterate for pixel color */
-        temp = z.real*z.real - z.imag*z.imag + c.real;
-        z.imag = 2.0*z.real*z.imag + c.imag;
-        z.real = temp;
-        lengthsq = z.real*z.real+z.imag*z.imag;
-        k++;
-      } while (lengthsq < 4.0 && k < maxIterations);
+      /* k = mandelbrot(i, j, &flops); */
 
       if (k >= maxIterations) res[i][j] = 0;
       else res[i][j] = k;
