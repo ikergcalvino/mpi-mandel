@@ -58,9 +58,9 @@ int mandelbrot(int i, int j, int *flops)
     z.real = temp;
     lengthsq = z.real*z.real+z.imag*z.imag;
     k++;
-    *flops += 10;
   } while (lengthsq < 4.0 && k < maxIterations);
 
+  *flops += (10 * k);
   return k;
 }
 
@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
 
   /* End measuring time */
   gettimeofday(&tf, NULL);
-  fprintf (stderr, "(PERF) Computing Time (seconds) = %lf\n", get_seconds(ti,tf));
+  fprintf (stderr, "Rank: %d - (PERF) Computing Time (seconds) = %lf\n", rank, get_seconds(ti,tf));
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -143,9 +143,16 @@ int main (int argc, char *argv[])
 	MPI_Gatherv(res_parcial, count[rank], MPI_INT, vres, count, displ, MPI_INT, 0, MPI_COMM_WORLD);
 
   gettimeofday(&tf, NULL);
-  fprintf (stderr, "(PERF) Communication Time (seconds) = %lf\n", get_seconds(ti,tf));
+  fprintf (stderr, "Rank: %d - (PERF) Communication Time (seconds) = %lf\n", rank, get_seconds(ti,tf));
 
 	MPI_Gather(&flops, 1, MPI_INT, flopsxproc, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if( STATS && rank == 0 ) {
+    for (i = 0; i < numprocs; i++)
+      total_flops += flopsxproc[i];
+    for (i = 0; i < numprocs; i++)
+      fprintf (stderr, "b%d = %5f\t | flops = %d\n", i, (total_flops*1.0) / (flopsxproc[i]*1.0*numprocs), flopsxproc[i]);
+  }
 
   /* Print result out */
   if( DEBUG && rank == 0 ) {
