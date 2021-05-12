@@ -134,7 +134,18 @@ int main (int argc, char *argv[])
 
   /* End measuring time */
   gettimeofday(&tf, NULL);
-  fprintf (stderr, "(PERF) Time (seconds) = %lf\n", get_seconds(ti,tf));
+  fprintf (stderr, "(PERF) Computing Time (seconds) = %lf\n", get_seconds(ti,tf));
+
+	MPI_Barrier(MPI_COMM_WORLD);
+
+  gettimeofday(&ti, NULL);
+
+	MPI_Gatherv(res_parcial, count[rank], MPI_INT, vres, count, displ, MPI_INT, 0, MPI_COMM_WORLD);
+
+  gettimeofday(&tf, NULL);
+  fprintf (stderr, "(PERF) Communication Time (seconds) = %lf\n", get_seconds(ti,tf));
+
+	MPI_Gather(&flops, 1, MPI_INT, flopsxproc, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   /* Print result out */
   if( DEBUG && rank == 0 ) {
