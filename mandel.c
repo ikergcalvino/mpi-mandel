@@ -67,12 +67,8 @@ int mandelbrot(int i, int j, int *flops)
 int main (int argc, char *argv[])
 {
 
-  /* Mandelbrot variables */
-  int i, j, k;
-  int *vres, *res[Y_RESN];
-
-  /* Timestamp variables */
-  struct timeval  ti, tf;
+  int flops = 0;
+  int total_flops = 0;
 
   /* MPI variables */
   int numprocs, rank;
@@ -81,28 +77,58 @@ int main (int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  /* Allocate result matrix of Y_RESN x X_RESN */
-  vres = (int *) malloc(Y_RESN * X_RESN * sizeof(int));
-  if (!vres)
+  /* Mandelbrot variables */
+  int i, j, k;
+	int res_parcial[(Y_RESN/numprocs) + 1][X_RESN];
+  int *vres, *res[Y_RESN];
+
+  int flopsxproc[numprocs];
+
+  int rows[numprocs];
+  int startrow[numprocs];
+	int count[numprocs];
+	int displ[numprocs];
+
+  for(i = 0; i < numprocs; i++) {
+		if( i < Y_RESN%numprocs ) {
+			rows[i] = Y_RESN/numprocs + 1;
+			startrow[i] = i*rows[i];
+		} else {
+			rows[i] = Y_RESN/numprocs;
+			startrow[i] = startrow[i-1] + rows[i-1];
+		}
+		count[i] = rows[i] * X_RESN;
+		displ[i] = startrow[i] * X_RESN;
+	}
+
+  /* Timestamp variables */
+  struct timeval  ti, tf;
+
+  if (rank == 0)
   {
-    fprintf(stderr, "Error allocating memory\n");
-    return 1;
+    /* Allocate result matrix of Y_RESN x X_RESN */
+    vres = (int *) malloc(Y_RESN * X_RESN * sizeof(int));
+    if (!vres)
+    {
+      fprintf(stderr, "Error allocating memory\n");
+      return 1;
+    }
+    for (i=0; i<Y_RESN; i++)
+      res[i] = vres + i*X_RESN;
   }
-  for (i=0; i<Y_RESN; i++)
-    res[i] = vres + i*X_RESN;
 
   /* Start measuring time */
   gettimeofday(&ti, NULL);
 
   /* Calculate and draw points */
-  for(i=0; i < Y_RESN; i++)
+  for(i=startrow[rank]; i < startrow[rank]+rows[rank]; i++)
   {
     for(j=0; j < X_RESN; j++)
     {
-      /* k = mandelbrot(i, j, &flops); */
+      k = mandelbrot(i, j, &flops);
 
-      if (k >= maxIterations) res[i][j] = 0;
-      else res[i][j] = k;
+      if (k >= maxIterations) res_parcial[i-startrow[rank]][j] = 0;
+      else res_parcial[i-startrow[rank]][j] = k;
     }
   }
 
