@@ -156,7 +156,8 @@ int main (int argc, char *argv[])
     }
   }
 
-  free(vres);
+  if (rank == 0)
+    free(vres);
 
   MPI_Finalize();
 
