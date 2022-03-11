@@ -9,7 +9,7 @@ que computa una imagen del conjunto de Mandelbrot.
 
 ## Código secuencial
 Código secuencial: `mandel.c`
-```
+``` c
 /*The Mandelbrot set is a fractal that is defined as the set of points c
 in the complex plane for which the sequence z_{n+1} = z_n^2 + c
 with z_0 = 0 does not tend to infinity.*/
